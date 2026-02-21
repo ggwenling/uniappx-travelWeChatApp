@@ -1,0 +1,41 @@
+{
+	"extends": "@vue/tsconfig/tsconfig.json",
+	"compilerOptions": {
+		"ignoreDeprecations": "5.0",
+		"verbatimModuleSyntax": true,
+		"experimentalDecorators": true,
+		"sourceMap": true,
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		"noImplicitAny": false,
+		"types": [
+			"@dcloudio/types",
+			"vue",
+			"vite/client",
+			"./uni_modules/cool-ui/index.d.ts",
+      "@uni-helper/uni-app-types",
+      "miniprogram-api-typings"
+		],
+		"lib": ["esnext", "dom"],
+		"outDir": "esbuild",
+		"paths": {
+			"@/*": ["./*"]
+		}
+	},
+	"vueCompilerOptions": {
+		"extensions": [".vue", ".uvue"],
+    "plugins": ["@uni-helper/uni-app-types/volar-plugin"]
+		
+	},
+	"include": [
+		"**/*.uts",
+		"**/*.ts",
+		"main.ts",
+		"**/*.uvue",
+		"**/*.vue",
+		"App.uvue",
+		"**/*.d.ts",
+		"./.cool/*.ts"
+	],
+	"exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,310 @@
+<template>
+	
+	
+
+<cl-page >	
+	<!-- 搜索框 -->
+
+			<view class="pl-2 pr-2 flex flex-row items-center gap-2">
+				<view class="flex-1">
+					<cl-input v-model="searchKey" confirmType="search" class="w-full">
+						<template #prepend>
+							<cl-icon name="sousuo_2" class="pr-2"></cl-icon>
+						</template>
+					</cl-input>
+				</view>
+				<cl-button size="normal" icon="search-line" rounded>搜索</cl-button>
+			</view>
+
+			<!-- 轮播图 -->
+  <view class="bg-surface-100 rounded-lg p-2 m-2 shadow-sm">
+		<cl-banner :list="bannerlist" 	:pt="{
+    className: 'mx-[-6px]',
+    item: {
+      className: parseClass(['scale-y-80 !px-[6px] transition-transform']),
+    },
+    itemActive: {
+      className: parseClass(['!scale-y-100']),
+    },
+  }"
+	:previous-margin="40"
+	:next-margin="40">
+		</cl-banner>
+    </view>
+	
+			<!-- 瀑布流 -->
+		<view class="py-2 px-2">
+			<cl-waterfall ref="waterfallRef" :column="2">
+				<template #item="{ item, index }">
+					<view class="waterfall-card" @click="goDetail(item)">
+						<!-- 图片展示 -->
+						<view class="image-container">
+							<!-- 性能优化：添加懒加载和禁用长按菜单 -->
+							<image 
+								:src="item.image" 
+								mode="widthFix" 
+								class="card-img"
+								lazy-load
+								:show-menu-by-longpress="false"
+							></image>
+							
+							<!-- 广告标识 -->
+							<template v-if="item.isAd">
+								<view class="ad-tag">广告</view>
+								<view class="close-icon" @tap.stop="del(item.id as number)">
+									<cl-icon color="white" name="close-line" :size="16"></cl-icon>
+								</view>
+							</template>
+						</view>
+
+						<!-- 内容区域 -->
+						<view class="card-info" v-if="!item.isAd">
+							<text class="card-title">{{ item.title }}</text>
+
+							<!-- 点赞区域 -->
+							<view class="flex flex-row justify-end gap-14">
+								<cl-tag type="primary" plain rounded>{{ item.tag[1] }}</cl-tag>
+								<view class="like-box">
+									<cl-icon name="heart-line" :size="16" color="#ff6b6b"></cl-icon>
+									<text class="like-text">{{ item.likeCount }}</text>
+								</view>
+							</view>
+						</view>
+					</view>
+				</template>
+			</cl-waterfall>
+			<cl-loadmore :loading="loading"></cl-loadmore>
+		</view>
+		</cl-page>
+
+	
+</template>
+
+<script setup lang="uts">
+import { ref, onUnmounted } from 'vue'
+import { random } from "@/.cool"
+import { onLoad, onReachBottom } from '@dcloudio/uni-app'
+import { getTopBar, getHomeList } from '../../api/api.ts'
+import { parseClass } from "@/.cool"
+
+const title: string = 'Hello'
+const searchKey = ref<string>('')
+
+// 瀑布流最大数据量限制（性能优化）
+const MAX_ITEMS = 100
+
+// 轮播区域
+const bannerlist = ref<any>([])
+
+// 瀑布流
+const waterfallRef = ref<any>()
+const loading = ref(false)
+
+// 瀑布流数据
+const homeList = ref<any>([])
+
+let id = 0
+
+onLoad(async () => {
+	// 获取轮播图数据（会自动缓存）
+	getTopBar().then(res => {
+		if (res && res.bannerList) {
+			bannerlist.value = res.bannerList.map((item: any) => item.image)
+			// 预加载轮播图（性能优化）
+			preloadImages(bannerlist.value)
+		}
+	}).catch(err => {
+		console.error('轮播图请求失败:', err)
+	})
+
+	// 获取首页列表数据（会自动缓存）
+	getHomeList().then(res => {
+		console.log('首页列表数据:', res)
+		homeList.value = res
+		// 在数据加载完成后才调用 refresh
+		refresh()
+	}).catch(err => {
+		console.error('首页列表请求失败:', err)
+	})
+})
+
+// 页面卸载时清理资源（防止内存泄漏）
+onUnmounted(() => {
+	console.log('首页卸载，清理资源')
+	// 清空数据
+	homeList.value = []
+	bannerlist.value = []
+})
+
+/**
+ * 预加载图片（性能优化）
+ * @param urls 图片URL数组
+ */
+function preloadImages(urls: string[]) {
+	if (!urls || urls.length === 0) return
+	
+	// 只预加载前3张图片，避免占用过多带宽
+	const preloadUrls = urls.slice(0, 3)
+	preloadUrls.forEach(url => {
+		uni.getImageInfo({
+			src: url,
+			success: () => {
+				console.log('图片预加载成功:', url)
+			},
+			fail: (err) => {
+				console.warn('图片预加载失败:', url, err)
+			}
+		})
+	})
+}
+
+/**
+ * 删除广告
+ * @param itemId 广告ID
+ */
+function del(itemId: number) {
+	waterfallRef.value?.remove(itemId)
+	uni.showToast({
+		title: '已删除',
+		icon: 'success'
+	})
+}
+
+/**
+ * 刷新瀑布流数据
+ */
+function refresh() {
+	if (!homeList.value || homeList.value.length === 0) {
+		return
+	}
+	
+	const items = homeList.value.map((item: any) => ({
+		id: item.id,
+		image: item.img,
+		title: item.introduce,
+		likeCount: random(100, 1000),
+		tag: item.tag,
+		times: item.times,
+		header: item.title
+	}))
+	
+	// 性能优化：限制最大数据量
+	if (waterfallRef.value) {
+		const currentItems = waterfallRef.value.getItems?.() || []
+		if (currentItems.length > MAX_ITEMS) {
+			console.log('数据量超过限制，清空旧数据')
+			waterfallRef.value.clear?.()
+		}
+	}
+	
+	waterfallRef.value?.append(items)
+}
+
+// 触底加载更多（带防抖）
+let loadMoreTimer: number | null = null
+onReachBottom(() => {
+	if (loading.value) return
+	
+	// 防抖：避免频繁触发
+	if (loadMoreTimer) {
+		clearTimeout(loadMoreTimer)
+	}
+	
+	loadMoreTimer = setTimeout(() => {
+		loading.value = true
+		
+		setTimeout(() => {
+			refresh()
+			loading.value = false
+		}, 1000)
+	}, 300) as unknown as number
+})
+
+/**
+ * 跳转到详情页
+ * @param item 项目数据
+ */
+const goDetail = (item: any) => {
+	const con = JSON.stringify(item)
+	uni.navigateTo({ 
+		url: `/pages/detail/detail?item=${encodeURIComponent(con)}` 
+	})
+}
+</script>
+
+<style lang="scss" scoped>
+.waterfall-card {
+	background: #fff;
+	border-radius: 16rpx;
+	overflow: hidden;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+	margin-bottom: 16rpx;
+
+	border:1px solid whitesmoke;
+}
+
+.image-container {
+	position: relative;
+	width: 100%;
+	overflow: hidden;
+}
+
+.card-img {
+	width: 100%;
+	display: block;
+	border-radius: 16rpx 16rpx 0 0;
+}
+
+.ad-tag {
+	position: absolute;
+	top: 16rpx;
+	left: 16rpx;
+	background: rgba(0, 0, 0, 0.6);
+	color: #fff;
+	font-size: 20rpx;
+	padding: 6rpx 16rpx;
+	border-radius: 8rpx;
+}
+
+.close-icon {
+	position: absolute;
+	top: 16rpx;
+	right: 16rpx;
+	width: 48rpx;
+	height: 48rpx;
+	background: rgba(0, 0, 0, 0.6);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.card-info {
+	padding: 20rpx;
+}
+
+.card-title {
+	font-size: 26rpx;
+	color: #333;
+	line-height: 1.5;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin-bottom: 16rpx;
+}
+
+.like-box {
+	display: flex;
+	gap: 8rpx;
+}
+
+.like-text {
+	font-size: 24rpx;
+	color: #999;
+}
+body{
+	background-color: rgb(248,248,248);
+}
+</style>

@@ -1,0 +1,29 @@
+{
+	"files.associations": {
+		"*.uvue": "vue",
+		"*.uts": "uts"
+	},
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"[uts]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[uvue]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"prettier.documentSelectors": [
+		"**/*.uvue",
+		"**/*.uts",
+		"**/*.ts"
+	],
+	"prettier.requireConfig": true,
+	"[ets]": {
+		"editor.defaultFormatter": "NailyZero.vscode-naily-ets"
+	},
+	"scss.lint.unknownAtRules": "ignore",
+	"[xml]": {
+		"editor.defaultFormatter": "redhat.vscode-xml"
+	},
+	"[vue]": {
+		"editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+	}
+}

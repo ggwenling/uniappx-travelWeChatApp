@@ -1,0 +1,90 @@
+<template>
+<cl-page>
+	<view class=" w-full">
+		<map v-if="projectData&& projectData.location" :longitude="projectData.location[1]" :latitude="projectData.location[0]" :show-scale="true"
+		 style="width: 100vw; height:50vh;" :markers="projectData.markers"
+		
+		/>
+	</view>
+	<view class="p-4">
+		<text class=" font-semibold mt-4">当前游玩项目:{{ projectData.title }}</text>
+		<view class=" text-sm text-gray-700 flex flex-row mt-4 gap-2"> 项目推荐 : 
+			<cl-rate :modelValue="projectData.count" :size="15"></cl-rate></view>
+	</view>
+	<view class="p-4">
+		<text class=" font-semibold mt-4 mb-4">其他项目</text>
+		<cl-banner :list="list" 
+			:autoplay="true" :interval="3000" :height="180" :show-dots="true"
+			 :next-margin="40"  :previous-margin="40" 	:pt="{
+    className: 'mx-[-6px]',
+    item: {
+      className: parseClass(['scale-y-80 !px-[6px] transition-transform']),
+    },
+    itemActive: {
+      className: parseClass(['!scale-y-100']),
+    },
+  }"
+				>
+</cl-banner>
+	</view>
+</cl-page>
+</template>
+
+<script setup lang="uts">
+import { ref, reactive, onUnmounted } from 'vue'
+import { getProject } from '../../api/api'
+import { onLoad } from '@dcloudio/uni-app'
+import { parseClass } from "@/.cool"
+
+const projectData = ref<any>({})
+const list = ref<any>([])
+
+onLoad((opt) => {
+	console.log('project 页面接收到的参数:', opt)
+	
+	if (opt && opt.item) {
+		try {
+			// 获取项目详情（会自动使用缓存）
+			getProject('1').then(res => {
+				console.log('项目详情数据:', res)
+				
+				// 严格的数据验证（防止数组访问错误）
+				if (res && typeof res === 'object') {
+					projectData.value = res
+					
+					// 安全地处理 other 数组
+					if (Array.isArray(res.other) && res.other.length > 0) {
+						list.value = res.other.map((item: any) => item.url)
+						console.log('其他项目列表:', list.value)
+					} else {
+						console.warn('other 数组为空或不存在')
+						list.value = []
+					}
+				} else {
+					console.error('返回的数据格式不正确')
+				}
+			}).catch(err => {
+				console.error('获取项目详情失败:', err)
+			})
+		} catch (e) {
+			console.error('数据处理失败:', e)
+		}
+	} else {
+		console.warn('未接收到 item 参数')
+	}
+})
+
+// 页面卸载时清理资源（防止内存泄漏）
+onUnmounted(() => {
+	console.log('project 页面卸载，清理资源')
+	// 清空数据
+	projectData.value = {}
+	list.value = []
+})
+</script>
+
+<style lang="scss" scoped>
+
+	
+
+</style>
